@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book List</title>
+  <style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-family: Arial, sans-serif;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    .read-btn {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .read-btn:hover {
+        background-color: #2980b9;
+    }
+  </style>
+</head>
+<body>
+<h1>Book List</h1>
+<table>
+  <thead>
+  <tr>
+    <th>Book Name</th>
+    <th>Author</th>
+    <th>Action</th>
+  </tr>
+  </thead>
+  <tbody id="bookTableBody">
+  <!-- This will be populated by JavaScript -->
+  </tbody>
+</table>
+
+<script th:inline="javascript">
+  // Fetch books from API when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+      fetchBooks();
+  });
+
+  function fetchBooks() {
+    const jwtToken = localStorage.getItem("JWT");
+
+    if (!jwtToken) {
+        alert("Please login first");
+        window.location.href = "/login"; // Redirect to login if no token
+        return;
+    }
+
+    fetch('http://localhost:8080/api/v1/books', {
+        headers: {
+            'Authorization': `Bearer ${jwtToken}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.status === 401) {
+            // Token expired or invalid
+            localStorage.removeItem("JWT");
+            window.location.href = "/login";
+            return;
+        }
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(books => {
+        populateBookTable(books);
+    })
+    .catch(error => {
+        console.error('There was a problem with the fetch operation:', error);
+        alert('Failed to load books. Please try again later.');
+    });
+}
+
+  function populateBookTable(books) {
+      const tableBody = document.getElementById('bookTableBody');
+      tableBody.innerHTML = ''; // Clear existing rows
+
+      books.forEach(book => {
+          const row = document.createElement('tr');
+
+          const titleCell = document.createElement('td');
+          titleCell.textContent = book.title;
+
+          const authorCell = document.createElement('td');
+          authorCell.textContent = book.author;
+
+          const actionCell = document.createElement('td');
+          const readButton = document.createElement('button');
+          readButton.className = 'read-btn';
+          readButton.textContent = 'Read';
+          readButton.onclick = function() {
+              readBook(book.title);
+          };
+          actionCell.appendChild(readButton);
+
+          row.appendChild(titleCell);
+          row.appendChild(authorCell);
+          row.appendChild(actionCell);
+
+          tableBody.appendChild(row);
+      });
+  }
+
+  function readBook(bookTitle) {
+      alert("Now reading: " + bookTitle);
+      // In a real application, you would redirect to the reading page or open the book
+      // window.location.href = "/read/" + encodeURIComponent(bookTitle);
+  }
+</script>
+</body>
+</html>
